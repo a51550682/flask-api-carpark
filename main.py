@@ -10,8 +10,7 @@ import logging
 app = Flask(__name__)
 
 # 启用 CORS，允许来自 https://carpark.azurewebsites.net 的请求
-CORS(app, resources={r"/predict": {"origins": "https://carpark.azurewebsites.net"}})
-
+CORS(app, resources={r"/*": {"origins": "https://carpark.azurewebsites.net"}})
 
 # 设置日志记录
 logging.basicConfig(level=logging.INFO,  # 设置日志级别
@@ -102,6 +101,19 @@ def predict():
     except Exception as e:
         logging.error(f"预测失败: {str(e)}")
         return jsonify({"error": f"预测失败：{str(e)}"}), 400
+
+
+@app.route('/predict', methods=['OPTIONS'])
+def predict_options():
+    """
+    处理预检请求
+    """
+    response = jsonify({"message": "CORS preflight successful"})
+    response.headers.add("Access-Control-Allow-Origin", "https://carpark.azurewebsites.net")
+    response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    return response, 200
+
 
 if __name__ == '__main__':
     # 启动 Flask 应用
