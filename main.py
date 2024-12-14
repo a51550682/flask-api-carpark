@@ -7,7 +7,7 @@ import os
 
 # 初始化 Flask 應用
 app = Flask(__name__)
-CORS(app)  # 啟用 CORS 支援跨域請求
+CORS(app, resources={r"/*": {"origins": "https://carpark.azurewebsites.net"}})
 
 # 模型目錄
 MODEL_DIR = "models"
