@@ -1,30 +1,30 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask_cors import CORS  # 引入 CORS
 import pandas as pd
 import numpy as np
 import joblib
 import os
 
-# 初始化 Flask 應用
+# 初始化 Flask 应用
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "https://carpark.azurewebsites.net"}})
+CORS(app, resources={r"/predict": {"origins": "https://carpark.azurewebsites.net"}})  # 允许特定域名的跨域请求
 
-# 模型目錄
+# 模型目录
 MODEL_DIR = "models"
 FEATURES_FILE = "features.pkl"
 
-# 載入共用的特徵名稱
+# 载入共用的特征名称
 try:
     features_path = os.path.join(MODEL_DIR, FEATURES_FILE)
     feature_names = joblib.load(features_path)
-    print(f"[INFO] 特徵名稱加載成功: {features_path}")
+    print(f"[INFO] 特征名称加载成功: {features_path}")
 except FileNotFoundError as e:
-    print(f"[ERROR] 無法加載特徵文件: {e}")
+    print(f"[ERROR] 无法加载特征文件: {e}")
     feature_names = []
 
 def load_model(car_park_id):
     """
-    根據停車場 ID 動態載入對應的模型。
+    根据停车场 ID 动态加载对应的模型。
     """
     model_path = os.path.join(MODEL_DIR, f"best_random_forest_model_{car_park_id}.pkl")
     if not os.path.exists(model_path):
@@ -34,58 +34,58 @@ def load_model(car_park_id):
 @app.route('/predict', methods=['POST'])
 def predict():
     """
-    接收前端傳來的 JSON 數據，基於對應停車場模型進行預測。
+    接收前端传来的 JSON 数据，基于对应停车场模型进行预测。
     """
     if not feature_names:
-        return jsonify({"error": "特徵名稱未加載，無法進行預測。"}), 500
+        return jsonify({"error": "特征名称未加载，无法进行预测。"}), 500
 
     try:
-        # 獲取前端發送的 JSON 數據
+        # 获取前端发送的 JSON 数据
         data = request.json
         if not data:
-            return jsonify({"error": "未提供數據"}), 400
+            return jsonify({"error": "未提供数据"}), 400
 
-        # 驗證是否包含 CarParkID
+        # 验证是否包含 CarParkID
         car_park_id = data.get("CarParkID")
         if not car_park_id:
-            return jsonify({"error": "請提供 CarParkID"}), 400
+            return jsonify({"error": "请提供 CarParkID"}), 400
 
-        # 載入對應的模型
+        # 加载对应的模型
         try:
             model = load_model(car_park_id)
         except FileNotFoundError as e:
             return jsonify({"error": str(e)}), 400
 
-        # 構建特徵 DataFrame
+        # 构建特征 DataFrame
         features = pd.DataFrame([data])
         features = features.drop(columns=["CarParkID"])  # 移除 CarParkID
 
-        # 檢查是否包含所有訓練模型時的特徵
+        # 检查是否包含所有训练模型时的特征
         missing_features = [f for f in feature_names if f not in features.columns]
         extra_features = [f for f in features.columns if f not in feature_names]
 
         if missing_features:
-            print(f"[WARNING] 缺少特徵: {missing_features}")
+            print(f"[WARNING] 缺少特征: {missing_features}")
         if extra_features:
-            print(f"[WARNING] 額外的特徵: {extra_features}")
+            print(f"[WARNING] 额外的特征: {extra_features}")
 
-        # 填補缺失特徵為 0，移除多餘的特徵
+        # 填补缺失特征为 0，移除多余的特征
         for feature in missing_features:
             features[feature] = 0
         features = features[feature_names]
 
-        # 處理缺失值或無效值
+        # 处理缺失值或无效值
         features = features.replace([np.inf, -np.inf], np.nan).fillna(0)
 
-        # 使用模型進行預測
+        # 使用模型进行预测
         predictions = model.predict(features)
 
-        # 返回預測結果
+        # 返回预测结果
         return jsonify({"prediction": predictions[0]})
     except Exception as e:
-        return jsonify({"error": f"預測失敗：{str(e)}"}), 400
+        return jsonify({"error": f"预测失败：{str(e)}"}), 400
 
 if __name__ == '__main__':
-    # 啟動 Flask 應用
+    # 启动 Flask 应用
     port = int(os.environ.get("PORT", 8080))  # 确保绑定到 PORT 环境变量
     app.run(host="0.0.0.0", port=port)
