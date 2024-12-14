@@ -7,7 +7,7 @@ import os
 
 # 初始化 Flask 应用
 app = Flask(__name__)
-CORS(app, resources={r"/predict": {"origins": "https://carpark.azurewebsites.net"}})  # 允许特定域名的跨域请求
+CORS(app, origins="https://carpark.azurewebsites.net/", supports_credentials=True)
 
 # 模型目录
 MODEL_DIR = "models"
