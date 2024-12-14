@@ -10,7 +10,8 @@ import logging
 app = Flask(__name__)
 
 # 启用 CORS，允许来自 https://carpark.azurewebsites.net 的请求
-CORS(app, origins="https://carpark.azurewebsites.net/", supports_credentials=True)
+CORS(app, resources={r"/predict": {"origins": "https://carpark.azurewebsites.net"}})
+
 
 # 设置日志记录
 logging.basicConfig(level=logging.INFO,  # 设置日志级别
